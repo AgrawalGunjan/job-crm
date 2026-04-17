@@ -1,7 +1,7 @@
-import { useContext, useState } from 'react'
+import { useContext, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSettings } from '../hooks/useSettings.js'
-import { exportAllData } from '../services/fileService.js'
+import { exportAllData, importContacts } from '../services/fileService.js'
 import {
   requestNotificationPermission,
   checkNotificationPermission,
@@ -10,6 +10,49 @@ import { requestMicrophonePermission } from '../services/audioService.js'
 import LoadingSpinner from '../components/common/LoadingSpinner.jsx'
 import { ToastContext } from '../App.jsx'
 import { Haptics, ImpactStyle } from '@capacitor/haptics'
+
+// ─── CSV helpers ──────────────────────────────────────────────────────────────
+
+const FIELD_MAP = {
+  fullname: 'fullName', name: 'fullName', 'full name': 'fullName',
+  phone: 'phone', mobile: 'phone', telephone: 'phone',
+  email: 'email',
+  company: 'company',
+  jobtitle: 'jobTitle', 'job title': 'jobTitle', title: 'jobTitle', role: 'jobTitle',
+  linkedin: 'linkedIn', 'linkedin url': 'linkedIn',
+  status: 'status',
+  notes: 'notes',
+  targetrole: 'targetRole', 'target role': 'targetRole',
+  referredby: 'referredBy', 'referred by': 'referredBy',
+  reference: 'referredBy', referral: 'referredBy',
+}
+
+function splitCSVRow(row) {
+  const result = []
+  let cur = '', inQuote = false
+  for (const ch of row) {
+    if (ch === '"') { inQuote = !inQuote }
+    else if (ch === ',' && !inQuote) { result.push(cur); cur = '' }
+    else { cur += ch }
+  }
+  result.push(cur)
+  return result
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split(/\r?\n/)
+  if (lines.length < 2) return []
+  const headers = splitCSVRow(lines[0]).map((h) => h.toLowerCase().trim())
+  const fields = headers.map((h) => FIELD_MAP[h] ?? null)
+  return lines.slice(1)
+    .filter((l) => l.trim())
+    .map((line) => {
+      const cells = splitCSVRow(line)
+      const obj = {}
+      fields.forEach((f, i) => { if (f) obj[f] = cells[i]?.trim() ?? '' })
+      return obj
+    })
+}
 
 async function haptic() {
   try { await Haptics.impact({ style: ImpactStyle.Light }) } catch {}
@@ -32,6 +75,30 @@ export default function SettingsScreen() {
   const { settings, loading, updateSettings } = useSettings()
   const { showToast } = useContext(ToastContext)
   const [exporting, setExporting] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const csvInputRef = useRef(null)
+
+  const handleCSVImport = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImporting(true)
+    try {
+      const text = await file.text()
+      const rows = parseCSV(text)
+      const added = await importContacts(rows)
+      showToast(
+        added > 0
+          ? `${added} contact${added !== 1 ? 's' : ''} imported`
+          : 'No new contacts found',
+        added > 0 ? 'success' : 'info'
+      )
+    } catch (err) {
+      showToast(`Import failed: ${err.message}`, 'error')
+    } finally {
+      setImporting(false)
+      e.target.value = ''
+    }
+  }
 
   if (loading || !settings) {
     return (
@@ -210,6 +277,33 @@ export default function SettingsScreen() {
           <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 pt-3 pb-1">
             Data
           </p>
+          {/* Hidden CSV file input */}
+          <input
+            ref={csvInputRef}
+            type="file"
+            accept=".csv"
+            className="hidden"
+            onChange={handleCSVImport}
+          />
+          <SettingRow
+            label="Import from CSV"
+            subtitle="Columns: fullName, phone, email, company, reference…"
+          >
+            <button
+              onClick={() => csvInputRef.current?.click()}
+              disabled={importing}
+              className="min-h-[36px] px-3 text-xs font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg disabled:opacity-50 flex items-center gap-1.5"
+            >
+              {importing ? (
+                <LoadingSpinner size="sm" />
+              ) : (
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+              )}
+              {importing ? 'Importing…' : 'Import'}
+            </button>
+          </SettingRow>
           <SettingRow
             label="Export All Data"
             subtitle="Download contacts & conversations as JSON"

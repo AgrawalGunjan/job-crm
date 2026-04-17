@@ -5,7 +5,9 @@ import {
   CONVERSATIONS_DIR,
   AUDIO_DIR,
   DEFAULT_SETTINGS,
+  DEFAULT_CONTACT,
 } from '../constants/defaults.js'
+import { generateId } from '../utils/idUtils.js'
 
 // ─── Internal helpers ───────────────────────────────────────────────────────
 
@@ -193,6 +195,27 @@ export async function deleteContactData(contactId) {
   } catch {
     // Directory may not exist — swallow
   }
+}
+
+// ─── Import contacts from CSV rows ───────────────────────────────────────────
+
+export async function importContacts(rows) {
+  const existing = await getContacts()
+  const existingKeys = new Set(existing.map((c) => `${c.fullName}|${c.phone ?? ''}`))
+  const toAdd = rows
+    .filter((r) => r.fullName?.trim())
+    .filter((r) => !existingKeys.has(`${r.fullName.trim()}|${r.phone?.trim() ?? ''}`))
+    .map((r) => ({
+      ...DEFAULT_CONTACT,
+      ...r,
+      id: generateId(),
+      fullName: r.fullName.trim(),
+      createdAt: new Date().toISOString(),
+    }))
+  if (toAdd.length > 0) {
+    await saveContacts([...existing, ...toAdd])
+  }
+  return toAdd.length
 }
 
 // ─── Export all data ─────────────────────────────────────────────────────────
