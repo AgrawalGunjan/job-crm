@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//d/Gunjan/AI Projects/Contacts CRM/android/**)",
+      "Read(//d/Gunjan/AI Projects/Contacts CRM/**)",
+      "Bash(npx cap:*)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(\"C:/Program Files/Android/Android Studio/jbr/bin/java\" -version)"
+    ]
+  }
+}
