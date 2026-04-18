@@ -4,6 +4,7 @@ import { useContacts } from '../hooks/useContacts.js'
 import { useConversations } from '../hooks/useConversations.js'
 import ContactDetail from '../components/contacts/ContactDetail.jsx'
 import ConversationList from '../components/conversations/ConversationList.jsx'
+import AIChatTab from '../components/chat/AIChatTab.jsx'
 import ContactActions from '../components/common/ContactActions.jsx'
 import Modal from '../components/common/Modal.jsx'
 import LoadingSpinner from '../components/common/LoadingSpinner.jsx'
@@ -155,6 +156,20 @@ export default function ContactDetailScreen() {
               </span>
             )}
           </button>
+          <button
+            onClick={() => setTab('ai')}
+            className={`min-h-[36px] px-4 rounded-lg text-sm font-semibold transition-all flex items-center gap-1.5 ${
+              tab === 'ai'
+                ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400'
+                : 'text-gray-500 dark:text-gray-400'
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+            </svg>
+            AI
+          </button>
         </div>
         {/* Call + WA always visible in nav */}
         <ContactActions phone={contact.phone} size="sm" />
@@ -178,6 +193,9 @@ export default function ContactDetailScreen() {
             onDelete={handleDeleteConversation}
             onUpdateNextStep={handleUpdateNextStep}
           />
+        )}
+        {tab === 'ai' && (
+          <AIChatTab contact={contact} conversations={conversations} />
         )}
       </div>
 
