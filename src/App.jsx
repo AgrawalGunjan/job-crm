@@ -15,6 +15,8 @@ import ContactDetailScreen from './screens/ContactDetailScreen.jsx'
 import AddEditContactScreen from './screens/AddEditContactScreen.jsx'
 import SettingsScreen from './screens/SettingsScreen.jsx'
 import ListOptionsScreen from './screens/ListOptionsScreen.jsx'
+import ProfileScreen from './screens/ProfileScreen.jsx'
+import LLMSettingsScreen from './screens/LLMSettingsScreen.jsx'
 
 // ─── Contexts ─────────────────────────────────────────────────────────────────
 export const ToastContext = createContext({ showToast: () => {} })
@@ -74,12 +76,27 @@ function BottomNav() {
         </svg>
       ),
     },
+    {
+      path: '/profile',
+      label: 'Profile',
+      icon: (active) => (
+        <svg className="w-5 h-5" fill={active ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 2}>
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+          />
+        </svg>
+      ),
+    },
   ]
 
   const activeTab = location.pathname === '/'
     ? '/'
     : location.pathname.startsWith('/contacts')
     ? '/contacts'
+    : location.pathname.startsWith('/profile')
+    ? '/profile'
     : '/settings'
 
   return (
@@ -143,6 +160,8 @@ function AppInner() {
           <Route path="/contacts/:id/edit" element={<AddEditContactScreen />} />
           <Route path="/settings" element={<SettingsScreen />} />
           <Route path="/settings/lists" element={<ListOptionsScreen />} />
+          <Route path="/settings/llm" element={<LLMSettingsScreen />} />
+          <Route path="/profile" element={<ProfileScreen />} />
         </Routes>
       </div>
       <BottomNav />

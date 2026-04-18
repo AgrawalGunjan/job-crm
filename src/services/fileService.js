@@ -4,8 +4,14 @@ import {
   SETTINGS_FILE,
   CONVERSATIONS_DIR,
   AUDIO_DIR,
+  AI_CHATS_DIR,
+  PROFILE_DIR,
+  PROFILE_INFO_FILE,
+  PROFILE_RESUME_FILE,
+  PROFILE_FILES_DIR,
   DEFAULT_SETTINGS,
   DEFAULT_CONTACT,
+  DEFAULT_PROFILE,
 } from '../constants/defaults.js'
 import { generateId } from '../utils/idUtils.js'
 
@@ -54,6 +60,9 @@ export async function initializeStorage() {
   await ensureDir('jobflow')
   await ensureDir('jobflow/conversations')
   await ensureDir('jobflow/audio')
+  await ensureDir(AI_CHATS_DIR)
+  await ensureDir(PROFILE_DIR)
+  await ensureDir(PROFILE_FILES_DIR)
 
   try {
     await readJSON(CONTACTS_FILE)
@@ -194,6 +203,137 @@ export async function deleteContactData(contactId) {
     })
   } catch {
     // Directory may not exist — swallow
+  }
+
+  await deleteAIChat(contactId)
+}
+
+// ─── Profile ─────────────────────────────────────────────────────────────────
+
+export async function getProfileInfo() {
+  try {
+    return await readJSON(PROFILE_INFO_FILE)
+  } catch (e) {
+    if (fileNotFound(e)) return { ...DEFAULT_PROFILE }
+    throw new Error(`Failed to load profile: ${e.message}`)
+  }
+}
+
+export async function saveProfileInfo(info) {
+  try {
+    await writeJSON(PROFILE_INFO_FILE, info)
+  } catch (e) {
+    throw new Error(`Failed to save profile: ${e.message}`)
+  }
+}
+
+export async function getProfileResume() {
+  try {
+    const result = await Filesystem.readFile({
+      path: PROFILE_RESUME_FILE,
+      directory: Directory.Data,
+      encoding: Encoding.UTF8,
+    })
+    return typeof result.data === 'string' ? result.data : ''
+  } catch (e) {
+    if (fileNotFound(e)) return ''
+    throw new Error(`Failed to load resume: ${e.message}`)
+  }
+}
+
+export async function saveProfileResume(text) {
+  try {
+    await Filesystem.writeFile({
+      path: PROFILE_RESUME_FILE,
+      data: text,
+      directory: Directory.Data,
+      encoding: Encoding.UTF8,
+      recursive: true,
+    })
+  } catch (e) {
+    throw new Error(`Failed to save resume: ${e.message}`)
+  }
+}
+
+export async function getProfileFiles() {
+  try {
+    const { files } = await Filesystem.readdir({
+      path: PROFILE_FILES_DIR,
+      directory: Directory.Data,
+    })
+    const results = []
+    for (const file of files) {
+      const filename = typeof file === 'string' ? file : file.name
+      try {
+        const result = await Filesystem.readFile({
+          path: `${PROFILE_FILES_DIR}/${filename}`,
+          directory: Directory.Data,
+          encoding: Encoding.UTF8,
+        })
+        results.push({ filename, content: typeof result.data === 'string' ? result.data : '' })
+      } catch {
+        // Skip unreadable files
+      }
+    }
+    return results
+  } catch (e) {
+    if (fileNotFound(e)) return []
+    return []
+  }
+}
+
+export async function saveProfileFile(filename, text) {
+  try {
+    await Filesystem.writeFile({
+      path: `${PROFILE_FILES_DIR}/${filename}`,
+      data: text,
+      directory: Directory.Data,
+      encoding: Encoding.UTF8,
+      recursive: true,
+    })
+  } catch (e) {
+    throw new Error(`Failed to save file: ${e.message}`)
+  }
+}
+
+export async function deleteProfileFile(filename) {
+  try {
+    await Filesystem.deleteFile({
+      path: `${PROFILE_FILES_DIR}/${filename}`,
+      directory: Directory.Data,
+    })
+  } catch {
+    // Swallow
+  }
+}
+
+// ─── AI Chat ─────────────────────────────────────────────────────────────────
+
+export async function getAIChat(contactId) {
+  try {
+    return await readJSON(`${AI_CHATS_DIR}/${contactId}.json`)
+  } catch (e) {
+    if (fileNotFound(e)) return []
+    throw new Error(`Failed to load AI chat: ${e.message}`)
+  }
+}
+
+export async function saveAIChat(contactId, messages) {
+  try {
+    await writeJSON(`${AI_CHATS_DIR}/${contactId}.json`, messages)
+  } catch (e) {
+    throw new Error(`Failed to save AI chat: ${e.message}`)
+  }
+}
+
+export async function deleteAIChat(contactId) {
+  try {
+    await Filesystem.deleteFile({
+      path: `${AI_CHATS_DIR}/${contactId}.json`,
+      directory: Directory.Data,
+    })
+  } catch {
+    // File may not exist — swallow
   }
 }
 

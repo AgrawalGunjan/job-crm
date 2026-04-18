@@ -9,6 +9,7 @@ import {
 import { requestMicrophonePermission } from '../services/audioService.js'
 import LoadingSpinner from '../components/common/LoadingSpinner.jsx'
 import { ToastContext } from '../App.jsx'
+import { LLM_PRESETS } from '../constants/defaults.js'
 import { Haptics, ImpactStyle } from '@capacitor/haptics'
 
 // ─── CSV helpers ──────────────────────────────────────────────────────────────
@@ -228,6 +229,32 @@ export default function SettingsScreen() {
               <option value="dark">Dark</option>
             </select>
           </SettingRow>
+        </div>
+
+        {/* AI Assistant */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 px-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 pt-3 pb-1">
+            AI Assistant
+          </p>
+          <button
+            onClick={() => navigate('/settings/llm')}
+            className="w-full flex items-center justify-between py-3.5 border-b border-gray-50 dark:border-gray-800 last:border-0 gap-3"
+          >
+            <div className="flex-1 min-w-0 text-left">
+              <p className="text-sm font-medium text-gray-900 dark:text-white">LLM Provider</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                {(() => {
+                  const llm = settings?.llmProvider
+                  if (!llm?.baseUrl) return 'Not configured'
+                  const preset = LLM_PRESETS.find((p) => p.id === llm.provider)
+                  return `${preset?.label ?? llm.provider} · ${llm.model || 'no model'}`
+                })()}
+              </p>
+            </div>
+            <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
         </div>
 
         {/* Permissions */}
